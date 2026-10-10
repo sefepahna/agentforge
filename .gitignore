@@ -1,0 +1,14 @@
+# API Keys
+env.sh
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated files
+*.log
