@@ -544,20 +544,6 @@
      }
     },
     {
-     "target_node": "api_verify",
-     "description": "verify_api",
-     "condition": {
-      "logic": "or",
-      "conditions": [
-       {
-        "variable": "route",
-        "operator": "equals",
-        "operand": "verify_api"
-       }
-      ]
-     }
-    },
-    {
      "target_node": "id_talk",
      "description": "always",
      "condition": {

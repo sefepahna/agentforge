@@ -223,7 +223,7 @@ def build_workflow(policy, spec):
     )
     nodes["brain_id_api"] = _code(
         "brain_id_api", "after_id_api(vars)", blob,
-        [("account", "api_account"), ("speak", "id_talk"), ("close", "goodbye"), ("verify_api", "api_verify")],
+        [("account", "api_account"), ("speak", "id_talk"), ("close", "goodbye")],
         "id_talk",
     )
     nodes["api_account"] = _api_node(

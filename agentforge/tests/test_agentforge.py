@@ -25,6 +25,18 @@ def policy(*names):
     return parse_briefs([KIT / "briefs" / name for name in names], spec)
 
 
+def first_route_target(node, route):
+    """First matching transition, in list order, as documented for deterministic routing."""
+    for edge in node.get("transitions") or []:
+        condition = edge.get("condition") or {}
+        if condition.get("operator") == "always":
+            return edge.get("target_node")
+        for check in condition.get("conditions") or []:
+            if check.get("variable") == "route" and check.get("operator") == "equals" and check.get("operand") == route:
+                return edge.get("target_node")
+    return ""
+
+
 def session(merged, products=None, **extra):
     vars = {
         "now": NOW, "policy_json": json.dumps(merged["blob"]),
@@ -996,6 +1008,39 @@ class WorkflowTests(unittest.TestCase):
         after_callback_api(callback)
         self.assertEqual(callback["outcome"], "not_reached")
         self.assertEqual(callback["reason"], "callback")
+
+    def test_brain_id_api_cannot_reenter_verify(self):
+        spec = load_openapi(KIT / "tools" / "openapi.json")
+        for names in (("brief-a.md",), ("brief-a.md", "brief-b.md")):
+            workflow = build_workflow(policy(*names), spec)
+            brain_id = workflow["nodes"]["brain_id"]
+            brain_id_api = workflow["nodes"]["brain_id_api"]
+            self.assertEqual(first_route_target(brain_id, "verify_api"), "api_verify")
+            api_targets = [edge.get("target_node") for edge in brain_id_api["transitions"]]
+            self.assertNotIn("api_verify", api_targets)
+            self.assertEqual(brain_id_api["transitions"][-1]["condition"]["operator"], "always")
+            self.assertEqual(brain_id_api["transitions"][-1]["target_node"], "id_talk")
+            self.assertEqual(first_route_target(brain_id_api, "verify_api"), "id_talk")
+            self.assertEqual(first_route_target(brain_id_api, "account"), "api_account")
+            self.assertEqual(first_route_target(brain_id_api, "speak"), "id_talk")
+            self.assertEqual(first_route_target(brain_id_api, "close"), "goodbye")
+        merged = policy("brief-a.md")
+        stale = session(merged)
+        stale["route"] = "verify_api"
+        stale["id_ok"] = "false"
+        stale["id_verified"] = "false"
+        stale["id_left"] = "2"
+        after_id_api(stale)
+        self.assertEqual(stale["route"], "speak")
+        self.assertNotEqual(stale["route"], "verify_api")
+        advanced = session(merged)
+        advanced["user_said"] = "Twelve July nineteen ninety-one."
+        after_id_utterance(advanced)
+        self.assertEqual(advanced["route"], "verify_api")
+        advanced["id_verified"] = "true"
+        after_id_api(advanced)
+        self.assertEqual(advanced["route"], "speak")
+        self.assertIn("phone", advanced["id_line"].lower())
 
 
 class DataIntegrityTests(unittest.TestCase):
