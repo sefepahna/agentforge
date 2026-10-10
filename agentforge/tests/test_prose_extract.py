@@ -200,8 +200,8 @@ def setUpModule():
 def tearDownModule():
     if _FIXTURES is not None:
         _FIXTURES.cleanup()
-HASH_A = "09dc5274f09b5c18912c500400e58b0474872ac2757599f519217395007acfbc"
-HASH_B = "64aaf389b10b8544a8d3ca8c46b4d262f518943482342c5d0d975aeeb811c0fd"
+HASH_A = "6dc58d0d3778d5bd09e7c7d35648a2df144628ad38042d2c1b3a8e7bf5b1d1da"
+HASH_B = "56a8b0b58ca082d7e288628697b40cd902b335ca1ed8f9b01169e74257a47caf"
 
 
 def _load(path):

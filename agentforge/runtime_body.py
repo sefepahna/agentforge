@@ -293,7 +293,7 @@ def begin(vars):
     bank = p.get("bank") or "the bank"
     title = str(vars.get("title") or "")
     last = str(vars.get("last_name") or "")
-    vars["disclosure"] = "Hello, this is a digital assistant calling from " + bank + ". This call is recorded."
+    vars["disclosure"] = "Hello, this is a digital assistant calling from " + bank + ". We are recording this call."
     vars["greet_line"] = "Am I speaking with " + title + " " + last + "?"
     vars["promise_recorded"] = "no"
     vars["promise_line"] = " "

@@ -361,10 +361,10 @@ def build_workflow(policy, spec):
     return {
         "initial_node": "boot",
         "system_prompt": (
-            "You are " + bank + "'s digital assistant on a recorded call. Speak English. "
+            "You are " + bank + "'s digital assistant. Speak English. "
             "Before identity is verified, do not say these words: " + (forbidden or "the balance") + ". "
             "Do not name the product or the amount before verification. "
-            "Never say a payment promise was recorded unless it was recorded. "
+            "Never say a payment promise is saved unless the promise tool succeeded. "
             "Never offer a discount, a waiver, or a plan the brief does not allow. "
             "The clock for this call is {{now}}."
         ),

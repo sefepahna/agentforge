@@ -389,16 +389,16 @@ class IdentityAndThirdPartyTests(unittest.TestCase):
         vars = session(self.merged)
         for word in ("collections", "debt", "payment", "recorded"):
             self.assertNotIn(word, vars["greet_line"].lower())
-        self.assertEqual(vars["disclosure"].count("recorded"), 1)
+        self.assertNotIn("recorded", vars["disclosure"].lower())
         self.assertIn("digital assistant", vars["disclosure"].lower())
-        self.assertIn("this call is recorded", vars["disclosure"].lower())
+        self.assertIn("we are recording this call", vars["disclosure"].lower())
         for word in ("collections", "debt", "payment", "card", "loan"):
             self.assertNotIn(word, vars["disclosure"].lower())
         vars["user_said"] = "who is this"
         after_greet(vars)
         self.assertEqual(vars["route"], "greet")
         self.assertNotIn("recorded", vars["greet_line"].lower())
-        self.assertEqual(vars["disclosure"].count("recorded"), 1)
+        self.assertNotIn("recorded", vars["disclosure"].lower())
 
     def test_relative_callback_does_not_verify(self):
         vars = session(self.merged, products=None, title="Ms", last_name="Costa")
@@ -473,7 +473,7 @@ class NegotiationTests(unittest.TestCase):
     def test_opening_disclosure_is_not_a_promise_claim(self):
         vars = session(self.merged)
         self.assertIn("digital assistant", vars["disclosure"].lower())
-        self.assertIn("this call is recorded", vars["disclosure"].lower())
+        self.assertIn("we are recording this call", vars["disclosure"].lower())
         self.assertNotIn("promise", vars["disclosure"].lower())
         self.assertNotIn("quality and compliance", vars["disclosure"].lower())
         workflow = build_workflow(self.merged, load_openapi(KIT / "tools" / "openapi.json"))
