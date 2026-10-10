@@ -2,6 +2,8 @@
 import re
 from pathlib import Path
 
+from agentforge.prose_extract import apply_prose
+
 WORD_NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
 
 
@@ -303,11 +305,14 @@ def parse_briefs(paths, spec):
         "example_now": "", "paid_line": "", "app_line": "", "queues": [],
     }
     sources = []
+    diagnostics = []
     for path in paths:
         file_path = Path(path)
         text = file_path.read_text(encoding="utf-8")
         sources.append(str(file_path))
-        merged = _merge(merged, _parse_one(text, spec))
+        parsed, file_diagnostics = apply_prose(_parse_one(text, spec), text)
+        diagnostics.extend(file_diagnostics)
+        merged = _merge(merged, parsed)
     blob = {
         "holidays": merged["holidays"],
         "bands": merged["bands"],
@@ -330,6 +335,7 @@ def parse_briefs(paths, spec):
     blob.update(roles)
     merged["blob"] = blob
     merged["sources"] = sources
+    merged["deploy_diagnostics"] = diagnostics
     merged["server"] = (spec.get("servers") or [{}])[0].get("url") or ""
     merged["enums"] = _enums(spec)
     return merged

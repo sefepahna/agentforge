@@ -1315,5 +1315,13 @@ class DataIntegrityTests(unittest.TestCase):
         self.assertEqual(vars["note_fault"], "yes")
 
 
+def load_tests(loader, tests, pattern):
+    """Documented suite command is this module; include the prose-parser tests."""
+    from agentforge.tests import test_prose_extract
+
+    tests.addTests(loader.loadTestsFromModule(test_prose_extract))
+    return tests
+
+
 if __name__ == "__main__":
     unittest.main()

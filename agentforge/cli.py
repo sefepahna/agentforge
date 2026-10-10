@@ -34,6 +34,7 @@ def build(brief_paths, openapi_path):
     if unsupported:
         errors.append("unsupported outcomes are not implemented: " + ", ".join(unsupported))
     errors.extend(unresolved_configuration(policy))
+    errors.extend(policy.get("deploy_diagnostics") or [])
     return policy, workflow, errors
 
 
