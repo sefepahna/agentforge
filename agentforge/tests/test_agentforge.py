@@ -572,6 +572,69 @@ class MultiProductTests(unittest.TestCase):
         self.assertIn(("p3", "refused"), noted)
         self.assertEqual(vars["outcome"], "promise")
 
+    def _pub12_products(self):
+        return [
+            card("9015", 510, 16, 153),
+            {"product_id": "p2", "type": "personal_loan", "past_due": 1320, "days_late": 16, "instalment_amount": 440},
+            {"product_id": "p3", "type": "car_loan", "past_due": 140, "days_late": 7, "instalment_amount": 46},
+        ]
+
+    def _pending_ids(self, vars):
+        return [bit.split("|")[0] for bit in (vars.get("pending") or "").split(";") if bit]
+
+    def test_not_paying_loans_does_not_confirm_them_with_tomorrow(self):
+        """One dated card promise. Named loans stay on the refusal path."""
+        vars = session(self.merged, self._pub12_products())
+        first = "I will pay the credit card tomorrow. I am not paying the personal loan or the car loan."
+        clarify = "Only the credit card tomorrow. I am not paying the personal loan or the car loan."
+        _route, coach = say(vars, first)
+        self.assertEqual(self._pending_ids(vars), ["p1"])
+        self.assertIn("p1|510.00|2026-10-15", vars["pending"])
+        self.assertIn("personal loan", coach.lower())
+        self.assertNotIn("do you confirm?", coach.lower())
+        _route, coach = say(vars, clarify)
+        self.assertEqual(self._pending_ids(vars), ["p1"])
+        self.assertNotIn("do you confirm?", coach.lower())
+        for _turn in range(6):
+            if "do you confirm?" in (vars.get("coach") or "").lower():
+                break
+            _route, coach = say(vars, "No.")
+            self.assertNotEqual(vars["route"], "record")
+            combined = "510.00" in coach and "1320.00" in coach and "140.00" in coach
+            self.assertFalse(combined and "do you confirm?" in coach.lower())
+            self.assertEqual(self._pending_ids(vars), ["p1"])
+        self.assertIn("Do you confirm?", vars["coach"])
+        self.assertIn("510.00", vars["coach"])
+        self.assertNotIn("1320.00", vars["coach"])
+        self.assertNotIn("140.00", vars["coach"])
+        say(vars, "Yes, I confirm.")
+        self.assertEqual(vars["route"], "record")
+        self.assertEqual(vars["rec_product"], "p1")
+        self.assertEqual(vars["rec_amount"], "510.00")
+        self.assertEqual(vars["rec_date"], "2026-10-15")
+        self.assertEqual(vars["queue"].split(";"), ["p1|510.00|2026-10-15"])
+        vars["promise_ok"] = "true"
+        after_record(vars)
+        self.assertEqual(vars["route"], "note")
+        noted = []
+        for _turn in range(4):
+            if vars["route"] != "note":
+                break
+            noted.append((vars["note_product"], vars["note_reason"]))
+            vars["note_ok"] = "true"
+            after_note(vars)
+        self.assertEqual(noted.count(("p2", "refused")), 1)
+        self.assertEqual(noted.count(("p3", "refused")), 1)
+        self.assertEqual(vars["outcome"], "promise")
+        self.assertNotEqual(vars["route"], "speak")
+
+    def test_not_paying_named_loans_records_no_promise(self):
+        vars = session(self.merged, self._pub12_products())
+        route, coach = say(vars, "I am not paying the personal loan or the car loan.")
+        self.assertEqual(vars.get("pending") or "", "")
+        self.assertNotEqual(route, "record")
+        self.assertNotIn("do you confirm?", coach.lower())
+
 
 class BenchmarkRegressionTests(unittest.TestCase):
     def test_spoken_dates_and_unparsed_cap(self):

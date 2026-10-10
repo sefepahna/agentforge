@@ -1270,7 +1270,7 @@ def negotiation_targets(said, products, vars, phase):
     low = said.lower()
     hits = mentioned(said, products)
     cut = len(low)
-    for token in ("refus", "not the", "won't", "will not pay", "but not"):
+    for token in ("refus", "not the", "won't", "will not pay", "but not", "not paying"):
         at = low.find(token)
         if at >= 0:
             cut = min(cut, at)
