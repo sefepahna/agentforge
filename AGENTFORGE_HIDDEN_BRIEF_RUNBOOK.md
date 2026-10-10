@@ -43,6 +43,21 @@ A later brief overrides tables and flags it states. Holiday dates accumulate. Ba
 
 This writes `out/<last-stem>.workflow.json`, `out/<last-stem>.checklist.json`, and `traces/agentforge-<time>-<stem>.txt`. Confirm `validation ok` and `model none`.
 
+## Before deploy
+
+`37da5b9` adds a locally tested check: unresolved payment bands, or no supported outcome mapping, block deployment. The 13/13 result stays on the earlier published agents, Brief A version 6 and Brief B version 4. It is not evidence for this check.
+
+`validation ok` is incomplete. A default is not proof that an explicit requirement was read. Compare the brief with `out/<stem>.checklist.json` before `--deploy`.
+
+- Numbered rules are copied, not executed. A rule that is not in the effective configuration is unsupported.
+- Holidays and minimum amounts must appear in the checklist when the brief states them. A missing list is not a parsed empty list.
+- Identity fields and the wrong-answer limit must match the brief. Unstated values fall back to date of birth, phone last four, and three tries.
+- Calling hours and the bank name must match. Unstated values fall back to 10:00–19:00 and `the bank`.
+- Outcome mappings, inherited bands, and later overrides must be the ones the brief states. An empty reason list on a resolved outcome is valid. A later brief replaces an outcome map only when it states one.
+- The `--openapi` file must allow the tools and enum values the brief uses. One command takes one API file.
+
+If a requirement is unsupported or only partly parsed, stop and name it. Do not deploy that gap, and do not hardcode the hidden brief into the builder.
+
 ## Deploy
 
 Repeat the same command with `--deploy` and without `--test`. Check that the second file hash matches the first. The trace must contain `freya workflow_id` and `freya agent_id` for the new stem. Those ids must not be the verified public agents.
