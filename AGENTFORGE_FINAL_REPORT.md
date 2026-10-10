@@ -31,12 +31,28 @@ Source fix: `326833ebd2e1f8f93e8572256c422f0bd8aca281` (`fix: scope mixed paymen
 
 Generated workflows: `9ed4b0c2d6e1d7b91649fd1cf6d3a1483d6b3017` (`build: refresh verified Brief A and B workflows`).
 
-SHA-256 of the committed compiler output:
+SHA-256 of the version 6 and version 4 compiler output:
 
 - `out/brief-a.workflow.json`: `09dc5274f09b5c18912c500400e58b0474872ac2757599f519217395007acfbc`
 - `out/brief-b.workflow.json`: `64aaf389b10b8544a8d3ca8c46b4d262f518943482342c5d0d975aeeb811c0fd`
 
-The same hashes were recorded before deploy. After publish, each code body matched the local body at the same node path. Platform defaults and `agent_config` were the only additions. `agentforge-rc1` remains `36e975eb53f7227817a967025a54bab85cda3cd1`.
+The same hashes were recorded before that deploy. After publish, each code body matched the local body at the same node path. Platform defaults and `agent_config` were the only additions. `agentforge-rc1` remains `36e975eb53f7227817a967025a54bab85cda3cd1`.
+
+## Later republish
+
+`58d131df5755e2ef372ae0f316df8e478ecfe88c` keeps the recording disclosure but does not say "recorded" in the opening. The same slots were published again. This is not the version 6 or version 4 evidence.
+
+| Brief | Public result | Simulation |
+|---|---|---|
+| A | 10/10 | `083995c0-abf2-49c9-879c-81956baebf9f` |
+| B | 3/3 | `578efdd9-cd3b-481a-b1ca-48eca4761cb9` |
+
+Current compiler SHA-256:
+
+- `out/brief-a.workflow.json`: `6dc58d0d3778d5bd09e7c7d35648a2df144628ad38042d2c1b3a8e7bf5b1d1da`
+- `out/brief-b.workflow.json`: `56a8b0b58ca082d7e288628697b40cd902b335ca1ed8f9b01169e74257a47caf`
+
+The new published version numbers were not in the trace. The local suite was 72/72. Development is frozen on this commit until the next briefs arrive.
 
 ## Evidence
 
