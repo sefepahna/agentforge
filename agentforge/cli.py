@@ -7,7 +7,7 @@ import sys
 import time
 from pathlib import Path
 
-from agentforge.parser import load_openapi, parse_briefs
+from agentforge.parser import load_openapi, parse_briefs, unresolved_configuration
 from agentforge.validate import validate_workflow
 from agentforge.workflow_builder import build_workflow
 
@@ -33,6 +33,7 @@ def build(brief_paths, openapi_path):
     unsupported = policy.get("unsupported_outcomes") or []
     if unsupported:
         errors.append("unsupported outcomes are not implemented: " + ", ".join(unsupported))
+    errors.extend(unresolved_configuration(policy))
     return policy, workflow, errors
 
 

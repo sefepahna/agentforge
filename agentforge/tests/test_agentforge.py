@@ -6,7 +6,9 @@ import unittest
 from pathlib import Path
 
 from agentforge.cli import build
-from agentforge.parser import _parse_one, _roles, load_openapi, parse_briefs
+from agentforge.parser import (
+    BAND_UNRESOLVED, OUTCOME_UNRESOLVED, _parse_one, _roles, load_openapi, parse_briefs,
+)
 from agentforge.runtime_body import (
     add_business, after_callback_api, after_customer, after_greet, after_id_api, after_id_utterance,
     after_note, after_record, attempt_day, begin, drain_notes_or_close, find_dates, is_business, is_no,
@@ -304,6 +306,55 @@ class ReleaseSafetyTests(unittest.TestCase):
         self.assertTrue(any("escalated" in error for error in errors))
         encoded = json.dumps(workflow)
         self.assertNotIn('"escalated"', encoded)
+
+
+class UnresolvedConfigurationTests(unittest.TestCase):
+    def test_brief_a_and_b_inheritance_stays_deployable(self):
+        spec = KIT / "tools" / "openapi.json"
+        alone, _, alone_errors = build([KIT / "briefs" / "brief-a.md"], spec)
+        merged, _, merged_errors = build(
+            [KIT / "briefs" / "brief-a.md", KIT / "briefs" / "brief-b.md"], spec,
+        )
+        self.assertEqual(alone_errors, [])
+        self.assertEqual(merged_errors, [])
+        self.assertEqual(merged["bands"], alone["bands"])
+        self.assertEqual(merged["outcomes"], alone["outcomes"])
+        self.assertEqual(merged["blob"]["role_promise"], "promise")
+
+    def test_missing_schedule_blocks_and_empty_reasons_do_not(self):
+        spec = KIT / "tools" / "openapi.json"
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            missing = root / "missing.md"
+            explicit = root / "explicit.md"
+            missing.write_text("Holiday 2026-10-26 is closed.\n", encoding="utf-8")
+            explicit.write_text(
+                "| 1 to 7 | early | 12th business day | 1 |\n"
+                "| Outcome | Reason |\n|---|---|\n| `promise` | none |\n",
+                encoding="utf-8",
+            )
+            _, _, missing_errors = build([missing], spec)
+            explicit_policy, _, explicit_errors = build([explicit], spec)
+        self.assertIn(BAND_UNRESOLVED, missing_errors)
+        self.assertIn(OUTCOME_UNRESOLVED, missing_errors)
+        self.assertEqual(explicit_errors, [])
+        self.assertEqual(explicit_policy["outcomes"]["promise"], [])
+        self.assertTrue(explicit_policy["bands"])
+
+    def test_prose_with_unextracted_terms_is_not_deployable(self):
+        spec = KIT / "tools" / "openapi.json"
+        prose = (
+            "Customers who are 1 to 45 days late may pay on the 7th business day. "
+            "One attempt is allowed. If they agree, close as promise. "
+            "If they refuse, close as no_promise.\n"
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "prose.md"
+            path.write_text(prose, encoding="utf-8")
+            _, _, errors = build([path], spec)
+        self.assertIn(BAND_UNRESOLVED, errors)
+        self.assertIn(OUTCOME_UNRESOLVED, errors)
+        self.assertNotIn("table", " ".join(errors).lower())
 
 
 class CalendarTests(unittest.TestCase):

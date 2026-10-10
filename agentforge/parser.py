@@ -267,6 +267,33 @@ def _roles(outcomes, queues):
     return mapped
 
 
+ROLE_KEYS = (
+    "role_promise", "role_paid", "role_transferred",
+    "role_no_promise", "role_not_verified", "role_not_reached",
+)
+
+BAND_UNRESOLVED = (
+    "payment bands were not resolved. No promise date or attempt count can be chosen "
+    "until the brief resolves at least one band. A later brief keeps bands it does not replace."
+)
+OUTCOME_UNRESOLVED = (
+    "no supported outcome mapping was resolved. Closing needs at least one of "
+    "promise, paid, transferred, no_promise, not_verified, not_reached. "
+    "An empty reason list on a resolved outcome is kept."
+)
+
+
+def unresolved_configuration(policy):
+    """Return deploy blockers for the merged brief. Empty reasons are not unresolved."""
+    errors = []
+    if not policy.get("bands"):
+        errors.append(BAND_UNRESOLVED)
+    blob = policy.get("blob") or {}
+    if not any(blob.get(key) for key in ROLE_KEYS):
+        errors.append(OUTCOME_UNRESOLVED)
+    return errors
+
+
 def parse_briefs(paths, spec):
     """Merge brief files in order. A later file overrides tables and flags it states."""
     merged = {
