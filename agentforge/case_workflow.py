@@ -66,6 +66,15 @@ POST_PROCESS = (
 )
 
 ADAPTER = """
+import json
+
+
+def _fail(vars, exc):
+    vars["route"] = "end_agent"
+    vars["say_line"] = "Şu anda işleminizi gerçekleştiremiyorum, sizi müşteri temsilcimize aktarıyorum."
+    vars["code_error"] = str(exc)[:180]
+
+
 def _load_spec(vars):
     raw = vars.get("case_spec_json") or "{}"
     if isinstance(raw, dict):
@@ -127,12 +136,31 @@ def _spec(vars):
 
 
 def boot_case(vars):
-    spec = _spec(vars)
-    state = begin(spec, vars.get("customerNumber"), vars.get("now"))
-    _publish(vars, spec, state)
+    try:
+        spec = _spec(vars)
+        state = begin(spec, vars.get("customerNumber"), vars.get("now"))
+        _publish(vars, spec, state)
+    except Exception as exc:
+        _fail(vars, exc)
 
 
 def after_service(vars):
+    try:
+        _after_service(vars)
+    except Exception as exc:
+        _fail(vars, exc)
+
+
+def _bank_body(body):
+    if not isinstance(body, dict):
+        return body
+    inner = body.get("data")
+    if isinstance(inner, dict) and "result" in inner and body.get("status") in ("success", "error"):
+        return inner
+    return body
+
+
+def _after_service(vars):
     spec = _spec(vars)
     state = _load_state(vars)
     raw = vars.get("service_body") or "{}"
@@ -143,6 +171,7 @@ def after_service(vars):
             body = json.loads(raw)
         except Exception:
             body = {}
+    body = _bank_body(body)
     status = vars.get("service_status")
     inferred = _infer_status(body)
     if status in (None, "", 0, "0"):
@@ -156,6 +185,13 @@ def after_service(vars):
 
 
 def after_user(vars):
+    try:
+        _after_user(vars)
+    except Exception as exc:
+        _fail(vars, exc)
+
+
+def _after_user(vars):
     spec = _spec(vars)
     state = _load_state(vars)
     intent = str(vars.get("caller_intent") or "").strip()
@@ -166,7 +202,13 @@ def after_user(vars):
         "week": str(vars.get("caller_week") or ""),
         "name": str(vars.get("caller_name") or text),
     }
-    if intent in ("", "other"):
+    known = {
+        "yes", "no", "vague", "silence", "agent", "pay", "dispute", "non_turkish",
+        "abusive", "third_party", "reveal", "out_of_scope", "all_cards", "repeat",
+        "thanks", "continue", "email", "email_old", "week", "week_change", "name",
+        "digits", "reidentify",
+    }
+    if intent not in known:
         state = on_user(state, spec, text)
     else:
         state = on_intent(state, spec, intent, extra)

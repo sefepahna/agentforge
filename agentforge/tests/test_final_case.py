@@ -185,6 +185,8 @@ class FinalCaseTests(unittest.TestCase):
         encoded = json.dumps(self.workflow)
         self.assertNotIn("95004361", encoded)
         self.assertNotIn("96158684", encoded)
+        boot = self.workflow["nodes"]["boot"]["pre_actions"][0]["function"]["parameters"]["properties"]["code"]["default"]
+        self.assertIn("import json", boot)
 
 
 def _supplementary(document):
