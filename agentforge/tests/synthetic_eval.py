@@ -349,10 +349,8 @@ def matrix_lines():
         ("SYN-07", "SAFE_REJECT", "identity errors %s" % [
             item for item in postcode["errors"] if item.startswith("unsupported identity")
         ]),
-        ("SYN-08", "FAIL+SAFE_REJECT", "window %s-%s kept with %s errors; outcome conflict errors %s" % (
-            window["signature"]["callback_start"],
-            window["signature"]["callback_end"],
-            len(window["errors"]),
+        ("SYN-08", "SAFE_REJECT", "window errors %s; outcome conflict errors %s" % (
+            [item for item in window["errors"] if item.startswith("multiple calling-hour")],
             len(outcome["errors"]),
         )),
     ]

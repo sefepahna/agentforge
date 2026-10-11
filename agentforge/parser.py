@@ -2,9 +2,11 @@
 import re
 from pathlib import Path
 
-from agentforge.prose_extract import apply_prose
+from agentforge.prose_extract import _classify_lines, apply_prose
 
 WORD_NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
+CALLING_HOURS = re.compile(r"from\s+(\d{1,2}:\d{2})\s+to\s+(\d{1,2}:\d{2})")
+CALLING_HOURS_AMBIGUOUS = "multiple calling-hour ranges are not implemented"
 
 
 def load_openapi(path):
@@ -45,6 +47,22 @@ def _kind(text):
     if any(word in low for word in ("close as", "do not say", "verify", "outcome", "before identity", "transfer", "callback")):
         return "transition"
     return "prompt"
+
+
+def _policy_calling_windows(text):
+    """Distinct from-to ranges on policy lines, in first-seen order.
+
+    Example sections are not policy. A later brief is a separate file.
+    """
+    found = []
+    for _number, line, kind in _classify_lines(text):
+        if kind != "policy":
+            continue
+        for start, end in CALLING_HOURS.findall(line):
+            pair = (start, end)
+            if pair not in found:
+                found.append(pair)
+    return found
 
 
 def _parse_one(text, spec):
@@ -112,7 +130,7 @@ def _parse_one(text, spec):
     if re.search(r"\bone product\b", text, re.I) and max_products is None:
         max_products = 1
         multi = False
-    window = re.search(r"from\s+(\d{1,2}:\d{2})\s+to\s+(\d{1,2}:\d{2})", text)
+    window = CALLING_HOURS.search(text)
     wrong = re.search(r"(\d+|one|two|three|four|five)\s+wrong answers", text, re.I)
     id_fields = []
     id_requests = []
@@ -326,6 +344,10 @@ def parse_briefs(paths, spec):
         text = file_path.read_text(encoding="utf-8")
         sources.append(str(file_path))
         parsed, file_diagnostics = apply_prose(_parse_one(text, spec), text)
+        windows = _policy_calling_windows(text)
+        if len(windows) > 1:
+            shown = ", ".join("%s-%s" % (start, end) for start, end in windows)
+            file_diagnostics.append(CALLING_HOURS_AMBIGUOUS + ": " + shown)
         diagnostics.extend(file_diagnostics)
         merged = _merge(merged, parsed)
     blob = {

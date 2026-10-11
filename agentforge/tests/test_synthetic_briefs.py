@@ -12,7 +12,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agentforge.cli import main
-from agentforge.parser import BAND_UNRESOLVED, IDENTITY_UNSUPPORTED, OUTCOME_UNRESOLVED
+from agentforge.parser import (
+    BAND_UNRESOLVED, CALLING_HOURS_AMBIGUOUS, IDENTITY_UNSUPPORTED, OUTCOME_UNRESOLVED,
+)
 from agentforge.prose_extract import FLOOR_UNBOUND, OUTCOME_REJECTED, WITHDRAWAL_UNAPPLIED
 from agentforge.tests.synthetic_eval import (
     CALLBACK_LINE,
@@ -166,12 +168,13 @@ class SyntheticCaseTests(unittest.TestCase):
         self.assertEqual(observed["policy"]["id_requests"], ["postcode"])
         self.assertIn("postcode", observed["rule_text"])
 
-    def test_syn08_second_callback_window_is_kept_without_a_diagnostic(self):
+    def test_syn08_distinct_callback_windows_are_rejected(self):
         observed = window_conflict_case()
-        self.assertEqual(observed["errors"], [])
+        hours = CALLING_HOURS_AMBIGUOUS + ": 09:15-16:45, 08:00-12:00"
+        self.assertEqual(observed["errors"], [hours])
         self.assertEqual(observed["signature"]["callback_start"], "09:15")
         self.assertEqual(observed["signature"]["callback_end"], "16:45")
-        self.assertEqual(observed["signature"]["diagnostics"], [])
+        self.assertEqual(observed["signature"]["diagnostics"], [hours])
         self.assertIn("08:00 to 12:00", (FIXTURES / "syn08_window_conflict.md").read_text(encoding="utf-8"))
 
     def test_syn08_conflicting_outcome_prose_blocks_deployment(self):
@@ -271,7 +274,8 @@ class SyntheticSafetyTests(unittest.TestCase):
         cases = {
             "syn02": [FIXTURES / "syn02_key_value.md"],
             "syn04": [FIXTURES / "syn01_structured.md", FIXTURES / "syn04_withdrawal.md"],
-            "syn08": [FIXTURES / "syn08_outcome_conflict.md"],
+            "syn08-window": [FIXTURES / "syn08_window_conflict.md"],
+            "syn08-outcome": [FIXTURES / "syn08_outcome_conflict.md"],
         }
         for name, paths in cases.items():
             with self.subTest(case=name):
