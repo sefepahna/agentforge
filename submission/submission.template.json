@@ -1,0 +1,9 @@
+{
+ "case_folder": null,
+ "mock_url": null,
+ "workflow_id": null,
+ "agent_id": null,
+ "workflow_export": "submission/final.workflow.json",
+ "trace": null,
+ "builder_model_calls": null
+}

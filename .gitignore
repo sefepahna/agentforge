@@ -12,7 +12,9 @@ venv/
 
 # Generated files
 *.log
+!traces/final.log
 .freya-agents.json
 .personas.json
 results/
-traces/
+traces/*
+!traces/final.log

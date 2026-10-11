@@ -7,6 +7,7 @@ import sys
 import time
 from pathlib import Path
 
+from agentforge.case_run import USAGE_EXIT, run_case_folder
 from agentforge.parser import load_openapi, parse_briefs, unresolved_configuration
 from agentforge.validate import validate_workflow
 from agentforge.workflow_builder import build_workflow
@@ -38,15 +39,37 @@ def build(brief_paths, openapi_path):
     return policy, workflow, errors
 
 
+def _case_folder_main(args):
+    if len(args.briefs) != 2:
+        print(
+            "case folder invocation is: python -m agentforge <case_folder> <mock_url>",
+            file=sys.stderr,
+        )
+        return USAGE_EXIT
+    return run_case_folder(
+        args.briefs[0],
+        args.briefs[1],
+        KIT,
+        deploy_requested=bool(args.deploy),
+        test_requested=bool(args.test),
+    )
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build a Freya phone agent from a brief.")
-    parser.add_argument("briefs", nargs="+", help="Brief markdown files, in order.")
+    parser.add_argument(
+        "briefs",
+        nargs="+",
+        help="Brief files, in order. Or a case folder and an http(s) mock URL.",
+    )
     parser.add_argument("--openapi", default=str(KIT / "tools" / "openapi.json"))
     parser.add_argument("--out", default="")
     parser.add_argument("--deploy", action="store_true")
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--brief", default="", help="Practice brief letter for run_cases.py, A or B.")
     args = parser.parse_args(argv)
+    if Path(args.briefs[0]).is_dir():
+        return _case_folder_main(args)
     started = time.strftime("%Y-%m-%dT%H:%M:%S")
     slot = Path(args.briefs[-1]).stem
     out_dir = KIT / "out"

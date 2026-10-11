@@ -1,0 +1,2 @@
+# PDF text extraction for case folders. Other supported formats use the standard library.
+pypdf==6.20.0
