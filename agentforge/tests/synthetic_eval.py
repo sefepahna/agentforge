@@ -306,7 +306,7 @@ def outcome_conflict_case():
 
 
 def zero_wrong_merge():
-    """A zero limit is parsed as 0 and then dropped because the merge treats 0 as missing."""
+    """An explicit zero stays 0 after merge so deploy can reject it."""
     from tempfile import TemporaryDirectory
 
     from agentforge.parser import _parse_one, parse_briefs
@@ -342,8 +342,10 @@ def matrix_lines():
             item for item in floor["errors"] if item.startswith("explicit floor")
         ]),
         ("SYN-04", "SAFE_REJECT", "bands kept %s" % (withdrawal["signature"]["bands"] == EXPECTED_BANDS)),
-        ("SYN-05", "FAIL", "max_wrong %s misses %s" % (
-            wrong["signature"]["max_wrong"], [item["id_miss"] for item in wrong["misses"]],
+        ("SYN-05", "SAFE_REJECT", "max_wrong %s errors %s misses %s" % (
+            wrong["signature"]["max_wrong"],
+            [item for item in wrong["errors"] if item.startswith("unsupported wrong-answer")],
+            [item["id_miss"] for item in wrong["misses"]],
         )),
         ("SYN-06", "FAIL", "cap %s kept %s" % (products["signature"]["max_products"], products["kept_ids"])),
         ("SYN-07", "SAFE_REJECT", "identity errors %s" % [

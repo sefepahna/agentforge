@@ -65,6 +65,17 @@ def _policy_calling_windows(text):
     return found
 
 
+def _stated_max_wrong(text):
+    """None when the brief states no limit. An explicit zero stays zero."""
+    match = re.search(r"(\d+|one|two|three|four|five)\s+wrong answers", text, re.I)
+    if not match:
+        return None
+    token = match.group(1)
+    if token.isdigit():
+        return int(token)
+    return WORD_NUMBERS.get(token.lower(), 0)
+
+
 def _parse_one(text, spec):
     enums = _enums(spec)
     holidays = []
@@ -131,7 +142,7 @@ def _parse_one(text, spec):
         max_products = 1
         multi = False
     window = CALLING_HOURS.search(text)
-    wrong = re.search(r"(\d+|one|two|three|four|five)\s+wrong answers", text, re.I)
+    wrong_limit = _stated_max_wrong(text)
     id_fields = []
     id_requests = []
     for match in re.finditer(r"date of birth|last four digits|phone_last4|date_of_birth|postcode|birth year|company number", text, re.I):
@@ -182,7 +193,7 @@ def _parse_one(text, spec):
         "max_products": max_products,
         "callback_start": window.group(1) if window else "",
         "callback_end": window.group(2) if window else "",
-        "max_wrong": (int(wrong.group(1)) if wrong and wrong.group(1).isdigit() else WORD_NUMBERS.get((wrong.group(1) if wrong else "").lower(), 0)) if wrong else 0,
+        "max_wrong": wrong_limit,
         "id_fields": id_fields,
         "id_requests": id_requests,
         "forbidden": forbidden,
@@ -221,7 +232,7 @@ def _merge(base, extra):
     for key in ("callback_start", "callback_end", "sentence", "sorry", "bank", "example_now", "paid_line", "app_line"):
         if extra.get(key):
             base[key] = extra[key]
-    if extra.get("max_wrong"):
+    if extra.get("max_wrong") is not None:
         base["max_wrong"] = extra["max_wrong"]
     if extra.get("id_fields"):
         base["id_fields"] = extra["id_fields"]
@@ -311,6 +322,9 @@ OUTCOME_UNRESOLVED = (
 # after_id_utterance parses date_of_birth and otherwise reads four phone digits.
 SUPPORTED_ID_FIELDS = ("date_of_birth", "phone_last4")
 IDENTITY_UNSUPPORTED = "unsupported identity fields are not implemented"
+# after_id_utterance closes a local miss at 3. The brief value is not in the blob.
+SUPPORTED_MAX_WRONG = 3
+MAX_WRONG_UNSUPPORTED = "unsupported wrong-answer limit is not implemented"
 
 
 def unresolved_configuration(policy):
@@ -325,6 +339,9 @@ def unresolved_configuration(policy):
     unsupported = [field for field in requested if field not in SUPPORTED_ID_FIELDS]
     if unsupported:
         errors.append(IDENTITY_UNSUPPORTED + ": " + ", ".join(unsupported))
+    limit = policy.get("max_wrong", SUPPORTED_MAX_WRONG)
+    if limit != SUPPORTED_MAX_WRONG:
+        errors.append(MAX_WRONG_UNSUPPORTED + ": " + str(limit))
     return errors
 
 

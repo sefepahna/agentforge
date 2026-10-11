@@ -13,7 +13,8 @@ from unittest.mock import patch
 
 from agentforge.cli import main
 from agentforge.parser import (
-    BAND_UNRESOLVED, CALLING_HOURS_AMBIGUOUS, IDENTITY_UNSUPPORTED, OUTCOME_UNRESOLVED,
+    BAND_UNRESOLVED, CALLING_HOURS_AMBIGUOUS, IDENTITY_UNSUPPORTED, MAX_WRONG_UNSUPPORTED,
+    OUTCOME_UNRESOLVED,
 )
 from agentforge.prose_extract import FLOOR_UNBOUND, OUTCOME_REJECTED, WITHDRAWAL_UNAPPLIED
 from agentforge.tests.synthetic_eval import (
@@ -131,10 +132,10 @@ class SyntheticCaseTests(unittest.TestCase):
         self.assertTrue(any(item.startswith(WITHDRAWAL_UNAPPLIED) for item in observed["errors"]))
         self.assertNotEqual(observed["errors"], [])
 
-    def test_syn05_two_wrong_answers_still_close_on_the_third_local_miss(self):
+    def test_syn05_two_wrong_answers_are_rejected_and_runtime_still_closes_at_three(self):
         observed = wrong_limit_case()
         misses = observed["misses"]
-        self.assertEqual(observed["errors"], [])
+        self.assertEqual(observed["errors"], [MAX_WRONG_UNSUPPORTED + ": 2"])
         self.assertEqual(observed["signature"]["max_wrong"], 2)
         self.assertFalse(observed["signature"]["max_wrong_in_blob"])
         self.assertEqual(misses[0]["route"], "speak")
@@ -148,7 +149,7 @@ class SyntheticCaseTests(unittest.TestCase):
         self.assertEqual(misses[2]["id_miss"], "3")
         zero = zero_wrong_merge()
         self.assertEqual(zero["parsed"], 0)
-        self.assertEqual(zero["merged"], 3)
+        self.assertEqual(zero["merged"], 0)
         self.assertFalse(zero["in_blob"])
 
     def test_syn06_four_product_cap_keeps_every_returned_product(self):
@@ -273,6 +274,7 @@ class SyntheticSafetyTests(unittest.TestCase):
     def test_rejected_synthetics_skip_deploy(self):
         cases = {
             "syn02": [FIXTURES / "syn02_key_value.md"],
+            "syn05": [FIXTURES / "syn05_two_wrong.md"],
             "syn04": [FIXTURES / "syn01_structured.md", FIXTURES / "syn04_withdrawal.md"],
             "syn08-window": [FIXTURES / "syn08_window_conflict.md"],
             "syn08-outcome": [FIXTURES / "syn08_outcome_conflict.md"],
