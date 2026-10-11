@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agentforge.cli import main
-from agentforge.parser import BAND_UNRESOLVED, OUTCOME_UNRESOLVED
+from agentforge.parser import BAND_UNRESOLVED, IDENTITY_UNSUPPORTED, OUTCOME_UNRESOLVED
 from agentforge.prose_extract import FLOOR_UNBOUND, OUTCOME_REJECTED, WITHDRAWAL_UNAPPLIED
 from agentforge.tests.synthetic_eval import (
     CALLBACK_LINE,
@@ -161,14 +161,13 @@ class SyntheticCaseTests(unittest.TestCase):
         self.assertEqual(observed["kept_ids"], ["c1", "c2", "c3", "c4", "c5"])
         self.assertEqual(set(observed["workflow"]["nodes"]), NODES_A)
 
-    def test_syn07_postcode_is_replaced_by_the_default_identity_fields(self):
+    def test_syn07_postcode_is_rejected_instead_of_accepted(self):
         observed = postcode_case()
-        self.assertEqual(observed["errors"], [])
-        self.assertEqual(observed["parsed_fields"], [])
-        self.assertEqual(observed["signature"]["id_fields"], ["date_of_birth", "phone_last4"])
-        self.assertEqual(observed["prompt"], "Please tell me your date of birth.")
+        identity = [item for item in observed["errors"] if item.startswith(IDENTITY_UNSUPPORTED)]
+        self.assertEqual(identity, [IDENTITY_UNSUPPORTED + ": postcode"])
+        self.assertNotEqual(observed["errors"], [])
+        self.assertEqual(observed["policy"]["id_requests"], ["postcode"])
         self.assertIn("postcode", observed["rule_text"])
-        self.assertNotIn("postcode", observed["signature"]["id_fields"])
 
     def test_syn08_second_callback_window_is_kept_without_a_diagnostic(self):
         observed = window_conflict_case()

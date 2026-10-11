@@ -346,7 +346,9 @@ def matrix_lines():
             wrong["signature"]["max_wrong"], [item["id_miss"] for item in wrong["misses"]],
         )),
         ("SYN-06", "FAIL", "cap %s kept %s" % (products["signature"]["max_products"], products["kept_ids"])),
-        ("SYN-07", "FAIL", "prompt %s" % postcode["prompt"]),
+        ("SYN-07", "SAFE_REJECT", "identity errors %s" % [
+            item for item in postcode["errors"] if item.startswith("unsupported identity")
+        ]),
         ("SYN-08", "FAIL+SAFE_REJECT", "window %s-%s kept with %s errors; outcome conflict errors %s" % (
             window["signature"]["callback_start"],
             window["signature"]["callback_end"],

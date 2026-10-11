@@ -115,6 +115,7 @@ def _parse_one(text, spec):
     window = re.search(r"from\s+(\d{1,2}:\d{2})\s+to\s+(\d{1,2}:\d{2})", text)
     wrong = re.search(r"(\d+|one|two|three|four|five)\s+wrong answers", text, re.I)
     id_fields = []
+    id_requests = []
     for match in re.finditer(r"date of birth|last four digits|phone_last4|date_of_birth|postcode|birth year|company number", text, re.I):
         token = match.group(0).lower()
         if "birth" in token and "year" not in token:
@@ -127,6 +128,8 @@ def _parse_one(text, spec):
             field = "birth_year"
         else:
             field = "company_number"
+        if field not in id_requests:
+            id_requests.append(field)
         allowed = (enums.get("verify_identity") or {}).get("field") or []
         if field not in id_fields and (not allowed or field in allowed):
             id_fields.append(field)
@@ -163,6 +166,7 @@ def _parse_one(text, spec):
         "callback_end": window.group(2) if window else "",
         "max_wrong": (int(wrong.group(1)) if wrong and wrong.group(1).isdigit() else WORD_NUMBERS.get((wrong.group(1) if wrong else "").lower(), 0)) if wrong else 0,
         "id_fields": id_fields,
+        "id_requests": id_requests,
         "forbidden": forbidden,
         "sentence": sentence,
         "sorry": sorry,
@@ -203,6 +207,8 @@ def _merge(base, extra):
         base["max_wrong"] = extra["max_wrong"]
     if extra.get("id_fields"):
         base["id_fields"] = extra["id_fields"]
+    if extra.get("id_requests"):
+        base["id_requests"] = extra["id_requests"]
     if extra.get("forbidden"):
         base["forbidden"] = extra["forbidden"]
     if extra.get("queues"):
@@ -283,6 +289,10 @@ OUTCOME_UNRESOLVED = (
     "promise, paid, transferred, no_promise, not_verified, not_reached. "
     "An empty reason list on a resolved outcome is kept."
 )
+# field_prompt speaks phone_last4 and otherwise asks for a date of birth.
+# after_id_utterance parses date_of_birth and otherwise reads four phone digits.
+SUPPORTED_ID_FIELDS = ("date_of_birth", "phone_last4")
+IDENTITY_UNSUPPORTED = "unsupported identity fields are not implemented"
 
 
 def unresolved_configuration(policy):
@@ -293,6 +303,10 @@ def unresolved_configuration(policy):
     blob = policy.get("blob") or {}
     if not any(blob.get(key) for key in ROLE_KEYS):
         errors.append(OUTCOME_UNRESOLVED)
+    requested = policy.get("id_requests") or []
+    unsupported = [field for field in requested if field not in SUPPORTED_ID_FIELDS]
+    if unsupported:
+        errors.append(IDENTITY_UNSUPPORTED + ": " + ", ".join(unsupported))
     return errors
 
 
@@ -301,7 +315,8 @@ def parse_briefs(paths, spec):
     merged = {
         "holidays": [], "bands": [], "outcomes": {}, "floors": [], "notes": False, "multi": False,
         "max_products": 1, "callback_start": "10:00", "callback_end": "19:00", "max_wrong": 3,
-        "id_fields": [], "forbidden": [], "sentence": "", "sorry": "", "rules": [], "bank": "the bank",
+        "id_fields": [], "id_requests": [], "forbidden": [], "sentence": "", "sorry": "",
+        "rules": [], "bank": "the bank",
         "example_now": "", "paid_line": "", "app_line": "", "queues": [],
     }
     sources = []
