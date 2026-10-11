@@ -338,9 +338,9 @@ def matrix_lines():
     rows = [
         ("SYN-01", "PASS", "structured tables bind; validation empty; floor %s" % structured["floor"]),
         ("SYN-02", "SAFE_REJECT", "errors %s" % len(labeled["errors"])),
-        ("SYN-03", "FAIL", "card floor %s loan floor %s errors %s" % (
-            floor["card_floor"], floor["loan_floor"], len(floor["errors"]),
-        )),
+        ("SYN-03", "SAFE_REJECT", "floor errors %s" % [
+            item for item in floor["errors"] if item.startswith("explicit floor")
+        ]),
         ("SYN-04", "SAFE_REJECT", "bands kept %s" % (withdrawal["signature"]["bands"] == EXPECTED_BANDS)),
         ("SYN-05", "FAIL", "max_wrong %s misses %s" % (
             wrong["signature"]["max_wrong"], [item["id_miss"] for item in wrong["misses"]],

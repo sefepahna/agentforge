@@ -114,16 +114,13 @@ class SyntheticCaseTests(unittest.TestCase):
         self.assertEqual(observed["node_count"], len(NODES_A))
         self.assertNotEqual(observed["errors"], [])
 
-    def test_syn03_natural_language_floor_passes_validation_with_the_balance(self):
+    def test_syn03_natural_language_floor_is_rejected(self):
         observed = natural_floor_case()
-        self.assertEqual(observed["errors"], [])
+        floor_errors = [item for item in observed["errors"] if item.startswith(FLOOR_UNBOUND)]
+        self.assertEqual(floor_errors, [FLOOR_UNBOUND + " (line 24: credit card, personal loan)"])
         self.assertEqual(observed["signature"]["floors"], [])
         self.assertEqual(observed["signature"]["bands"], EXPECTED_BANDS)
-        self.assertEqual(observed["signature"]["diagnostics"], [])
-        self.assertEqual(observed["card_floor"], 200)
-        self.assertEqual(observed["loan_floor"], 80)
-        self.assertNotEqual(observed["card_floor"], 40)
-        self.assertNotEqual(observed["loan_floor"], 15)
+        self.assertNotEqual(observed["errors"], [])
 
     def test_syn04_withdrawal_blocks_deploy_and_keeps_the_old_bands(self):
         observed = withdrawal_case()

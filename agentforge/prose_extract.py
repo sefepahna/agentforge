@@ -29,6 +29,15 @@ FLOOR_DEFINITION = re.compile(r"(?i)(?:^FLOOR\b|\bthe floor is\b)")
 FLOOR_BINDING = re.compile(
     r"`?([a-z][a-z0-9_]*(?:_payment|_amount))`?\s+for\s+(?:a\s+)?"
 )
+FLOOR_LOWER_BOUND = re.compile(
+    r"(?i)\b(?:at or above|no less than|not less than|not below|"
+    r"cannot be (?:less|lower) than|must not be (?:less|lower) than)\b"
+)
+FLOOR_AMOUNT_NAME = re.compile(
+    r"(?i)\b(?:minimum payment|instalment amount|installment amount)\b"
+)
+FLOOR_AMOUNT_WINDOW = 48
+FLOOR_PRODUCT = re.compile(r"(?i)\b(credit card|personal loan|car loan)\b")
 EXAMPLE_SECTION = re.compile(r"(?i)^(example only|sample only|illustration|for example)\b")
 POLICY_SECTION = re.compile(r"(?i)^(policy schedule|policy|schedule)\b")
 
@@ -241,14 +250,36 @@ def _withdrawals(text):
     return found
 
 
+def _floor_subject(line):
+    found = []
+    for match in FLOOR_PRODUCT.finditer(line):
+        name = match.group(1).lower()
+        if name not in found:
+            found.append(name)
+    return ", ".join(found) if found else "unspecified product"
+
+
+def _unbound_floor(line):
+    """True when a policy line states a floor the backtick binder did not take."""
+    if FLOOR_BINDING.search(line):
+        return False
+    if FLOOR_DEFINITION.search(line):
+        return True
+    for bound in FLOOR_LOWER_BOUND.finditer(line):
+        amount = FLOOR_AMOUNT_NAME.search(line, bound.end())
+        if amount and amount.start() - bound.end() <= FLOOR_AMOUNT_WINDOW:
+            return True
+    return False
+
+
 def _unbound_floor_lines(text):
     rows = []
     for number, line, kind in _classify_lines(text):
         if kind != "policy":
             continue
         stripped = line.strip()
-        if FLOOR_DEFINITION.search(stripped) and not FLOOR_BINDING.search(stripped):
-            rows.append(number)
+        if _unbound_floor(stripped):
+            rows.append((number, _floor_subject(stripped)))
     return rows
 
 
@@ -301,6 +332,8 @@ def apply_prose(parsed, text):
     updated["bank"] = bank or parsed.get("bank") or ""
     floor_lines = _unbound_floor_lines(text)
     if floor_lines:
-        shown = ", ".join("line " + str(number) for number in floor_lines[:4])
+        shown = ", ".join(
+            "line " + str(number) + ": " + subject for number, subject in floor_lines[:4]
+        )
         diagnostics.append(FLOOR_UNBOUND + " (" + shown + ")")
     return updated, diagnostics
