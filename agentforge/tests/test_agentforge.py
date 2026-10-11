@@ -1316,10 +1316,11 @@ class DataIntegrityTests(unittest.TestCase):
 
 
 def load_tests(loader, tests, pattern):
-    """Documented suite command is this module; include the prose-parser tests."""
-    from agentforge.tests import test_prose_extract
+    """Documented suite command is this module; include prose and regression tests."""
+    from agentforge.tests import test_prose_extract, test_regression_harness
 
     tests.addTests(loader.loadTestsFromModule(test_prose_extract))
+    tests.addTests(loader.loadTestsFromModule(test_regression_harness))
     return tests
 
 
