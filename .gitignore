@@ -11,6 +11,8 @@ __pycache__/
 venv/
 
 # Generated files
+mock/final-statement/generated/*
+!mock/final-statement/generated/index.json
 *.log
 !traces/final.log
 .freya-agents.json
